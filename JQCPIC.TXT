@@ -1,0 +1,322 @@
+JOHN Q'S CPI-C ABUSER PROGRAMS
+
+
+Dr. John Q. Walker II
+July 25, 1992
+version 1.04
+
+IBM Corporation
+APPC Market Enablement
+Department E42, Building 673
+P.O. Box 12195
+200 Silicon Drive
+Research Triangle Park, North Carolina USA  27709
+-------------------------------------------------
+Telephone: 919-254-4414
+Internet: johnq@vnet.ibm.com
+
+
+
+JUST TWO SMALL PROGRAMS: JQCPIC and JQCPICD
+
+Let's randomly issue all the CPI-C conversation calls in a loop!
+Application programmers: Can the CPI-C client and server programs
+you build successfully handle every conceivable input?  Platform
+vendors:  Can your CPI-C implementation withstand this onslaught?
+
+JQCPIC (the client side) and JQCPICD (the server side) are a pair
+of distributed programs that issue the CPI-C conversation calls
+randomly.  Valid and invalid parameters are generated for each
+call.
+
+The client side, JQCPIC, starts by issuing
+Initialize_Conversation and Allocate (CMINIT and CMALLC) calls.
+It loops forever, issuing calls, and returning the new
+conversation state.  One parameter is required: a symbolic
+destination name.  End the client side any time by pressing the
+letter Q (for "quit").
+
+The server side, JQCPICD, is started remotely by incoming
+Attaches issued by the client side.  It first issues an
+Accept_Conversation (CMACCP) call.  It continues to loop on valid
+calls until it deallocates the conversation (or has the
+conversation deallocated out from under it by the client).  The
+server program then exits, but another will soon be started by
+the next incoming Attach from the client.  No parameters are
+required for the server side.
+
+Once you find your CPI-C platform implementation to be robust,
+you'll find this pair of programs to be good at generating all
+types of traffic on a session.  There are lots of communications
+testing situations where you can find a use for a pair of
+programs that generate every type of reasonable SNA traffic.  For
+example, this can be used for testing of APPN network node
+implementations; lash together 10's or 100's of network nodes,
+and run this pair of programs between lots of different LEN
+nodes, end nodes, and network nodes.
+
+Another good use for these programs: suppose you're writing a
+server application (for any platform), using CPI-C or a native
+APPC programming interface.  Remember: you ought to be able to
+lock a server in a closet; thus it should be able to run forever:
+
+-    dealing amicably with ANY incoming traffic
+-    never entering a hang state
+-    servicing every incoming Attach or Deallocate
+-    always logging the right error condition no matter what it
+     gets.
+
+JQCPIC (the client side) is just what the doctor ordered for
+testing your server application!  Conversely, can any client
+program you design withstand the garbage this server side can
+generate?
+
+
+CONFIGURATION
+
+There are no names or other assumptions hard-coded into these
+programs.  You must set up the DLCs, links, LUs, modes, sessions,
+and TPs needed by each computer in the conversation.
+
+Client Side requirements...
+
+To start the client side, JQCPIC, you must specify a symbolic
+destination name, which contains the information necessary to get
+to the server.  To use a CPI-C symbolic destination name, you
+must first have configured it on your computer.  A symbolic
+destination name is actually a pointer to a record consisting
+of three parts.
+
+Partner LU name:    Configure the name of the partner LU that the
+                    server will be using.
+
+Mode name:          Configure the name of a mode known to both
+                    your computer and your partner.  If in doubt,
+                    use "#INTER".
+
+TP name:            Configure the name that will flow to the
+                    partner in the Attach.  This name will have
+                    to be configured in the TP definition at the
+                    server side.  If in doubt, use "JQCPICD",
+                    which is the name of the executable program
+                    on the server; this can make things easier.
+
+You can pick any 8-character name you want for the symbolic
+destination name, since this name is never communicated to the
+partner.  You use it only on the command line of the client side.
+
+You'll need to assure there's a local LU in each client, of
+course.
+
+
+Server Side requirements...
+
+To have the server side be remotely started, you must specify the
+handling necessary when a TP name arrives in an incoming Attach.
+This requires a TP definition at the server.
+
+TP name:            Configure the TP definition necessary to get
+                    the server program started.  One key
+                    parameter is the name of the executable
+                    program; for example, in DOS or OS/2, this
+                    name is JQCPICD.EXE.  This program should be
+                    Attach Manager started, either queued or non-
+                    queued.
+
+Of course, you'll need to configure a local LU and a mode in the
+server.  Let each client know the name of these.
+
+
+HANGS AND BEEPS
+
+The server side should never hang.
+
+The client side can hang in two conditions: 1) after a CMALLC,
+waiting to get a session with the server, or 2) after a later
+call that causes the send buffer to be flushed, and thus causes
+the Attach to flow to the partner.  The client side will wait
+until the Attach is accepted by the server.
+
+These programs "beep" and continue when they encounter invalid
+values (that is, bugs in the CPI-C platform implementation).  As
+a tester, I chose to have the programs continue, assuming they'll
+get into unexpected error-handling code that's even worse than
+the real bug.  As a platform implementer, you'll probably want to
+fix your bugs--meaning you'll want to stop everything when one of
+these occurs and look at the trace.
+
+
+LET'S MAKE THIS NASTIER!
+
+Let's assume you've got the pair running without problems for
+hours and days on end.  Then it's time to start abusing the
+environment, and see if recovery is complete and timely.  You
+ought to be able to kill the server side at any time after it has
+issued its CMACCP call (e.g., using Ctrl+Break).  The server side
+should clean up cleanly, the client side should be deallocated,
+and the client should loop back to another CMINIT and CMALLC.
+Try unplugging cables in the middle of the network--in fact, try
+any nasty thing you can think of.  The client side should plod
+away forever; the server side should awaken whenever it gets an
+Attach, and run until one side or the other deallocates.
+
+For example, while the pair are running...
+-    deactivate the DLC at the server side, then reactivate it
+-    deactivate the DLC at the client side, then reactivate it
+-    deactivate the link between the pair, then reactivate it
+-    deactivate the TP on the client side as soon as it's running
+-    deactivate the session between the pair, then let it be
+     reactivated by the next CMALLC
+-    unplug the wiring between the pair, then reconnect it
+-    stop the attach manager on the server side, then start it
+     again
+-    kill the program on the server side, e.g., using Ctrl+Break
+     on DOS or OS/2
+-    start up 10, 100, or 1000 copies of the client program.
+     Start 'em until your operating system gives out.  Are the
+     symptoms that are reported the right ones?
+
+JQCPIC and JQCPICD are designed to be small, simple, easily
+maintainable, and portable.  Are there some simple revisions to
+these programs that would make them 1) more portable, and 2) more
+nasty?  I don't want these to grow huge, and I don't want to
+reproduce the whole CPI-C state table.  Let's keep it simple, but
+ever more abusive!  I welcome your feedback and code revisions.
+
+
+COLIN WEST'S EXCELLENT SET OF CPI-C RANDOM TEST TOOLS
+
+JQCPIC and JQCPICD are meant to compliment, not replace, Colin
+West's extensive CPI-C random test tools.  Here are some of the
+differences:
+
+JQCPIC                          Colin's Random Tester
+
+-    will generate bad          -    generates only good,
+     parameters                      valid parameters
+
+-    no state machine; issues   -    extensive FSM: determines
+     Extract Conversation            the next state, based on
+     State after every call.         supplied and returned
+                                     parameters
+
+-    no checking of the data    -    continuous checking of
+     stream contents on Send         data stream contents.  No
+     and Receive                     byte in the data goes
+                                     unaccounted for.
+
+-    no recognition of          -    support for syncpoint
+     syncpoint (CPI-RR) return       calls, return codes, and
+     codes or states                 states
+
+Colin's tools have been used for testing on many IBM CPI-C
+platforms.  He can be reached in IBM at his VNET ID:
+CW at ZURLVM1.
+
+
+WHO'S PASSED THE TEST?
+
+OS/2:     I've tested this from OS/2 to OS/2 Extended Services,
+          in one computer and between a pair.  If you're using
+          Networking Services/2 (NS/2), make sure you have at
+          least CSD WR1003.
+
+Let me know if your platform can pass this abuse.  I'll keep the
+list updated.  Send me your working makefiles.
+
+
+LIMITATIONS AND RESTRICTIONS
+
+-    You'll want to have tracing active, in case you encounter
+     problems.  You'll need API traces to see the parameters and
+     the sequencing of the most recent CPI-C calls.
+
+-    There are no product-specific CPI-C extensions supported.
+
+-    There's no support for any of the X/Open CPI-C calls that
+     aren't in IBM SAA CPI-C.  I've based these programs on the
+     IBM SAA CPI-C Reference, SC26-4399-04.
+
+-    These program rely on the Extract_Conversation_State call.
+     This call isn't supported on MVS, OS/400, and IMS, so don't
+     expect to port these programs to those platforms painlessly.
+
+     (John Q's opinion: look, this is the "Common Programming
+     Interface for Communications."  It seems inexcusable that
+     this common call isn't supported on these (or any other)
+     CPI-C platforms.  Step up to the real world, team!)
+
+-    With basic conversations, there is no specific support for
+     building LLs.  So, the send side is pretty brain-dead in
+     this area, with the potential for building lots of partial
+     or continued LLs.
+
+
+ASSEMBLY REQUIRED FOR YOUR PLATFORM?
+
+If you are recompiling these programs for your platform, you'll
+need to make sure you have all the parts!  Here's a list of those
+parts:
+
+BUILD    C     - contains one procedure for each CPI-C call
+CALLS    C     - miscellaneous procedures
+CMDLIN   C     - command line parsing
+CPICDEFS C     - use constants and arrays to generate strings
+JQCPIC   C     - contains main
+
+PORT     C     - port these procedures
+SHOW     C     - write strings
+JQCPIC   EXE   - executable program (client side)
+JQCPICD  EXE   - executable program (server side)
+BUILD    H     - function prototypes for the BUILD.C functions
+CALLS    H     - contains the table of valid calls and states
+CPICDEFS H     - maps CPI-C constants to readable strings
+JQCPIC   H     - typedefs, enums, function prototypes, etc.
+PORT     H     - function prototypes for the PORT.C functions
+MAKEFILE       - makefile for MS C 6.00A, DOS and OS/2
+
+There's only one set of source code.  To build the server side,
+define an external constant, SERVER_SIDE.  If you don't define
+that constant, you'll get the client side.  See the makefile for
+an example.
+
+I've defined another external constant: NOCPIC.  If you
+externally define NOCPIC, then the two programs can run on their
+own--with no calls to CPI-C, randomly generating states and
+return codes.  This is good for testing your programs without
+requiring any communications setup.  (I'm a true believer in
+iterative refinement; take it a step at a time!)
+
+There's a constant named VALID_PARM_PERCENTAGE that's used to
+determine the probability of generating a good parameter.  It's
+declared in JQCPIC.H, and used in function generate_valid_parm().
+
+Life as a programmer is made much easier by the structure called
+CPIC_CONV_ATTRIB (see CPICDEFS.H).  It contains all the fields
+needed for one conversation.  By passing around a pointer to it,
+the procedures know all about the current status of the
+conversation, along with all its possible CPI-C attributes.
+
+
+PERFORMANCE EXPECTATIONS
+
+I use the following configuration extensively to test these
+programs:
+-    IBM PS/2 Model P70, 386DX/16
+-    OS/2 2.0, OS/2 Extended Services 1.0
+-    one LU (I test in this one machine, with LU=OWN)
+-    JQCPICD's TP definition (for the Attach Manager) set to run
+     in the background (minimizing screen I/O).
+
+Running both sides on this single computer, I see a rate of about
+30 verbs per second on the client side (with tracing off), and 20
+verbs per second (with tracing on).
+
+
+ACKNOWLEDGEMENTS
+
+-    Tim Huntley
+-    Dan Poirier
+-    Peter Schwaller
+-    Colin West
+

@@ -1,0 +1,593 @@
+
+
+  TERMINOLOGY
+
+  TERM           DEFINITION
+
+  TRANSACTION    An exchange between two programs that accomplishes a
+                 particular action or result.  Transaction programs are written
+                 in pairs, with both sides of the transaction cooperating to
+                 achieve a result.  The sides of a transaction program are
+                 known as "client" and "server."
+
+                 Examples of transactions are:
+
+                 o   sending a simple message
+
+                 o   executing a specified procedure or task
+
+                 o   updating a database entry
+
+  CLIENT         Identifies the initiator of a transaction.  The client must
+                 specify the name of the other side of the transaction, known
+                 as the server.  The term client can refer to either a program
+                 or a computer.
+
+  SERVER         Identifies the receiver of a transaction.  The server does not
+                 need to know the name of the client side of the transaction.
+
+  PARTNER COMPUTER
+                 Identifies the "other" side of a transaction.  The partner of
+                 the client is the server, and vice versa.
+
+  DESTINATION    The name used on the client to identify the server.
+
+  APPC PLATFORM  Refers to the APPC implementation code running on a given
+                 computer.
+
+
+  USER'S GUIDE
+
+
+
+  What Is ATELL?
+
+  ATELL is a sample program that allows a workstation user to send a message to
+  another workstation.  ATELL is written in the C language and uses the IBM SAA
+  Common Programming Interface for Communications (CPI-C).
+
+  ATELL is made up of two transaction programs; ATELL, which runs on the client
+  side, and ATELLD, which runs on the server side.
+
+
+  Using ATELL
+
+  The simplest way to use ATELL is to specify only the destination and the
+  message.
+
+    ATELL destination Howdy, pardner.
+
+  What you actually specify in place of "destination" is described below.
+
+  This command will send the message "Howdy, pardner." to the destination
+  computer specified.  The ATELLD program on the destination computer will show
+  the message on the computer.  The method used for displaying the message may
+  vary on different operating systems.
+
+  The following describes all of the ATELL parameters:
+
+    ATELL Õoptional parametersþ destination message
+
+  The destination and message are the only required parameters.  You may
+  specify any number of the additional parameters.  If you specify any
+  parameter more than once, the only the last parameter value will be used.
+
+  PARAMETER EXPLANATION
+
+  destination
+            Identifies the partner computer on which the ATELLD server program
+            runs.
+
+            May be either a CPI-C symbolic destination name or a partner LU
+            name.
+
+            If the destination is a CPI-C symbolic destination name, it must be
+            1 to 8 characters and must be configured in your platform's
+            symbolic destination name table (see Configuration Guide below).
+
+            If the destination is a partner LU name, the format varies from
+            platform to platform.  See the Configuration Guide section for your
+            platform for more information about configuring and specifying
+            partner LU names.
+
+  message
+            The message text to be sent to the destination computer
+
+  -m mode_name
+            mode name (default: "#INTER")
+
+  -t tp_name
+            the TP name to start on the partner (default: "ATELLD")
+
+  -u userid
+            This is the userid that will be send to the partner.  The userid
+            can be 1-8 characters in length.  You should use this parameter
+            when the destination transaction program has been configured to
+            require security.  One indication that the destination transaction
+            program requires security is a CPI-C return code of
+            XC_SECURITY_NOT_VALID.
+
+            Specifying this parameter implies the conversation will use CPI-C
+            security=PROGRAM.  A password must also be specified.  If a userid
+            is specified without a password, ATELL will prompt the user for a
+            password.
+
+  -p password
+            This is the password that will be send to the partner.  The
+            password can be 1-8 characters in length.
+
+  -n
+            This parameter forces ATELL to use NO security on the conversation.
+            (CPI-C security=NONE).  This should be used when you receive a
+            CPI-C return code of XC_SECURITY_NOT_VALID, but the destination
+            transaction program is not configured to require security.
+
+
+  CONFIGURATION GUIDE FOR ATELL
+
+  The ATELL program consists of two sides:  the client computer side and the
+  server computer side.  On the client computer side, the user starts up the
+  ATELL program and specifies what actions should be taken.  As a result, the
+  ATELLD program is started on the server computer side.  The ATELL and ATELLD
+  programs then use communicate using CPI-C and complete the transaction.
+
+  In order to get the client computer and the server computer to talk to each
+  other, both computers must be configured.  This configuration involves
+  defining certain APPC information to the ATELL programs and to the APPC
+  platform on the computer.
+
+  The rest the Configuration Guide is divided into the following sections:
+
+  o   APPC Configuration Overview
+
+      This section describes the APPC information that must be provided to the
+      APPC platform.  If you are not familiar with APPC terminology or
+      configuration, you should read this section.
+
+  o   Configuration Information for Specific Platforms
+
+      These are the actual steps that should be done on the client computer and
+      server computer.  The directions are grouped by APPC platform.  You
+      should find the section for your platforms, and follow the steps
+      indicated.  The following platforms are described in this Configuration
+      Guide:
+
+      -   Networking Services/DOS
+
+      -   Networking Services/2 or Extended Services/2
+
+
+  APPC CONFIGURATION OVERVIEW
+
+  In order to successfully communicate with APPC from one computer to another,
+  you need to configure some information in your APPC platform.  This
+  information consists of:
+
+  o   How to physically connect to another computer.
+
+      You tell your APPC platform how to physically connect to another computer
+      by defining a link.  The link definition tells APPC information about how
+      to connect to the partner computer, including data link control
+      information.  The data link control represents the physical connection
+      (token-ring, SDLC, Ethernet, etc.) between two computers.  To connect to
+      the partner computer, the APPC link definition specifies both a data link
+      control and addressing information specific to that data link control.
+      For example, if you are using token ring as your data link control, you
+      will need to specify a token ring address in your link definition.  Some
+      data link controls, may not require any address information, since the
+      partner computer is implied to be on the other end of the physical
+      connection.  This is common with SDLC leased lines.
+
+  o   How to identify and find the correct server computer.
+
+      Computers are identified in APPC by their fully qualified LU name.  The
+      fully qualified LU name consists of two parts: a network name and an LU
+      name, concatenated with a period.  For example:
+
+          USIBMNR.NR55069I
+
+      Both the client and server computers must have fully qualified LU names
+      defined.
+
+      LU names are viewed relative to the computer on which they are defined:
+      there are local LUs and there are partner LUs which are on partner
+      computers.  The local LU name for any given computer is the partner LU
+      name as viewed from another computer, and vice versa.
+
+      Each APPC platform must define at least one local LU, which must be
+      unique within the network.  Since there are only up to 8 characters with
+      which to create a unique LU name, this can be somewhat challenging in
+
+      networks with many computers.  Some possible naming conventions for LUs
+      include:
+
+      -   Assigning consecutive LU names (alphabetically increasing) under
+          central administration control.
+
+      -   Incorporating something that is already unique to each computer.
+
+          Examples include:
+
+          --  Serial number of the computer
+
+          --  Person number of the user
+
+          --  Unique userid of the user
+
+      On some APPC platforms, you must predefine the list of partner LUs that
+      the computer will be able to communicate with.  Other platforms allow you
+      to use any fully qualified LU name without having defined it beforehand.
+      The APPC platform will then dynamically find that LU in the network.
+
+  o   What kind of connection should be made with the server computer.
+
+      When the ATELL client program requests a connection with a partner LU,
+      the APPC platform establishes what is called a session between the local
+      LU and the partner LU.  The simplest session that can be established
+      occurs when the client computer and the server computer are directly
+      connected with a single APPC link.  The session goes directly from the
+      client computer to the server computer.
+
+      If your network is larger and more complex, the client computer may be
+      connected to a network node computers rather than directly to the server
+      computer.  In this case, the session that is established may pass through
+      other computers in the network.  To add to the complexity, there may be
+      different paths through the network.
+
+      The network will always choose the best path through the network for your
+      application.  Since different applications have different needs, APPC
+      provides a way for the application to specify the route characteristics
+      that are best for that application.  The application specifies a mode
+      name which contains all the routing characteristics required by the
+      application.  The characteristics associated with a mode include:
+
+      -   Turnaround time
+
+          How fast must data get through the network?
+
+      -   Throughput
+
+          How much data can get through the network?
+
+      -   Cost
+
+          Are you paying for physical connections between computers?
+      Two modes which are commonly supplied with APPC platforms are #BATCH and
+      #INTER.  The definition for #BATCH specifies a path with good throughput
+      characteristics.  The definition for #INTER specifies a path with good
+      turnaround time.  If your platform does not supply a definition for these
+      modes, you can either define them on your platform, or use some other
+      mode that is already defined by specifying the mode name when you start
+      the ATELL client program.
+
+  o   How to identify and start the correct program on the server computer.
+
+      When the client computer establishes a connection with the server
+      computer, the server computer must make that connection with a particular
+      server program.  To help the server computer identify the server program,
+      a transaction program name is sent from the client computer.
+
+      The server program is identified by this transaction program (TP) name.
+      The TP name is a 1 to 64 byte string.  Becuase the actual execuable
+      program names can be different on various computers, the TP name is used
+      as a common identifier or an alias for the real program name.  In many
+      cases, the TP name and the real program name will be identical.
+
+      On the client computer, the TP name is specified by the ATELL client
+      program and is the first thing sent by the client APPC platform to the
+      server APPC platform.  The client computer does need to have a TP name
+      definition configured.
+
+      The server APPC platform then needs to know how to correlate the received
+      TP name with an actual program.  This is done through a TP definition,
+      which tells the server APPC platform which program should be started and
+      the application parameters and characteristics associated with the
+      program.  Some common things that can be configured are:
+
+      -   The name and location (e.g., subdirectory) of the server program
+
+      -   A list of users who can use the server program
+
+      -   Parameters that should be passed to the program when it is started
+
+
+  PLATFORM SPECIFIC CONFIGURATION
+
+  The following steps have been described for each APPC platform that ATELL has
+  been tested with:
+
+  o   Networking Services/DOS
+
+  o   Networking Services/2 and Extended Services/2
+
+  Each platform will have the following information:
+
+  o   General configuration tools
+
+      -   Where and how configuration changes are made
+
+      -   How to make your configuration changes take effect
+
+  o   Configuration common to client and server computers
+
+  o   Configuration specific to the client computer
+
+      How to specify and identify where your server is and how to reach your
+      server.
+
+  o   Configuration specific to the server computer
+
+      How to specify which clients can use the server and what server program
+      to start for when the TP arrives.
+
+  Each platform also requires data link control configuration information.  In
+  all of the examples, token ring data link control configuration will be
+  shown.  For information about configuring other data link controls, see the
+  documentation for the specific platform.
+
+
+  Configuration for Networking Services/DOS
+
+  o   General configuration tools
+
+      -   Where and how configuration changes are made
+
+          All configuration changes for Networking Services/DOS are made in the
+          Networking Services/DOS configuration file.  To make changes to your
+          configuration, you must edit the Networking Services/DOS
+          configuration file according to the directions below.  The default
+          configuration file is named CONFIG.NSD and is usually in the \NSD
+          subdirectory.  You may use another file name, but you will have to
+          specify that name explicitly when you use the NSD command (see
+          below).
+
+      -   How to make your configuration changes active
+
+          After you have edited your Networking Services/DOS configuration
+          file, you should use the NSD command to start NSD and activate your
+          configuration changes.  If you are using the default configuration
+          file, you should use:
+
+            nsd start
+
+          If you are using another Networking Services/DOS configuration file,
+          you should use:
+
+            nsd start FILENAME
+
+  o   Configuration common to client and server computers
+
+      -   Defining a local LU
+
+
+          Include an "nsdn" statement in your Networking Services/DOS
+          configuration file:
+
+            nsdn USIBMNR.CLIENT_LU
+
+          The name specified by the "nsdn" entry must be unique throughout your
+          network.
+
+      -   Defining a partner LU
+
+          --  If you are directly connected to your partner computer, include
+              "nsdc" and "trli" entries in your Networking Services/DOS
+              configuration file.  You must specify both the partner LU name
+              and the token ring destination address of the partner computer.
+              For example:
+
+                nsdc lan
+                trli SERVER_LU,400000000001
+
+          --  If you are connected to your partner computer through a network
+              node, "nsdc,"  "trli," and  "adrs" entries in your Networking
+              Services/DOS configuration file.  For example:
+
+                nsdc lan
+                trli NN_LU,600000000002
+                adrs SERVER_LU,NN_LU
+
+              In this example, we specify a physical connection to our network
+              node, specifying the LU name of the network node (NN_LU) and the
+              token ring destination address.  We then specify that the LU name
+              SERVER_LU can be reached through the network node NN_LU.
+
+          In both cases, change the token ring destination address in the
+          example to the address of the partner computer you are connecting to.
+
+      -   Defining a link to a partner computer or to the network node
+
+          The definition of the link has already been done in the partner LU
+          section above.
+
+      -   Defining a mode
+
+          Since Networking Services/DOS has already defined the IBM supplied
+          mode names, including #INTER, no mode definitions on Networking
+          Services/DOS are needed for ATELL.
+
+  o   Configuration specific to the client computer
+
+      No special configuration is needed for &nsd.  to configure the ATELL
+      client.
+
+  o   Configuration specific to the server computer
+
+
+      Networking Services/DOS does not support server transaction programs at
+      this time.
+
+
+  Configuration for Networking Services/2 and Extended Services/2 (OS/2)
+
+  o   General configuration tools
+
+      -   Where and how configuration changes are made
+
+          To configure Networking Services/2 and Extended Services/2 use either
+          the Configuration Management panels or edit the Node Definitions File
+          (NDF).  Although the following examples show Node Definitions File
+          commands, you can enter the same information on the Configuration
+          Management panels.  Your Node Definitions File file will have the
+          same filename as your Communications Manager configuration file, but
+          with a file extension of "NDF."
+
+      -   How to make your configuration changes active
+
+          You must verify the configuration file after changes are made to the
+          configuration.  If you have edited the Node Definitions File, run
+          APPNV from an OS/2 Command prompt with the /e option to verify and
+          update your configuration.  For example:
+
+            appnv WRKBASE.NDF /e
+
+  o   Configuration common to client and server computers
+
+      -   Defining a local LU
+
+          During the Networking Services/2 and Extended Services/2 installation
+          process, at least one local LU was configured.  This is the LU that
+          will be used when you run the ATELL client.  When your computer is
+          acting as a server, this is the LU name that should be configured on
+          the client platform as the partner LU.
+
+          You can find your local LU in the DEFINE_LOCAL_CP command In the
+          following Node Definitions File excerpt:
+
+              define_local_cp  fq_cp_name(USIBMNR.CLIENT_LU)
+                               cp_alias(mylu)
+                               node_id(x'50000')
+                               node_type(en);
+
+          The local LU is USIBMNR.CLIENT_LU.
+
+      -   Defining a partner LU
+
+          Since both Networking Services/2 and Extended Services/2 support
+          APPN, you do not need to define partner LU names.
+
+          When your computer is the client, you will simply need to specify the
+          fully qualified name of your partner LU.  This fully qualified name
+          includes the network name and LU name concatenated with a period.  To
+          enable any partner to call you when your computer is a server, make
+          sure your Node Definitions File contains the following:
+
+              define_defaults  implicit_inbound_plu_support(yes);
+
+          An additional feature of defining partner LUs is that you can provide
+          an alias for the actual partner LU name.  For example, you could
+          define "server" to be an alias for USIBMNR.SERVER_LU.  Alias are case
+          sensitive; "SERVER" is a different alias than "server."
+
+          If you choose to define partner LUs, either to provide an alias for
+          use when running the ATELL client, or to restrict the names of
+          partner clients that can contact you, use a "define_partner_lu"
+          command as follows:
+
+              define_partner_lu  fq_partner_lu_name(USIBMNR.SERVER_LU)
+                                 partner_lu_alias(server);
+
+      -   Defining a link to a partner computer or to the network node
+
+          --  To define a link directly to your partner, your Node Definitions
+              File should contain a "define_link" command,
+
+                  define_logical_link  link_name(link)
+                                       fq_adjacent_cp_name(USIBMNR.SERVER_LU)
+                                       adjacent_node_type(len)
+                                       dlc_name(ibmtrnet)
+                                       adapter_number(0)
+                                       destination_address(x'400000000001')
+                                       cp_cp_session_support(no)
+                                       activate_at_startup(no);
+
+          --  To define a link to your network node, your Node Definitions File
+              should contain a "define_link" command,
+
+                  define_logical_link  link_name(link)
+                                       adjacent_node_type(nn)
+                                       dlc_name(ibmtrnet)
+                                       adapter_number(0)
+                                       destination_address(x'600000000002')
+                                       cp_cp_session_support(yes)
+                                       activate_at_startup(yes);
+
+              Note that the CP name of the network node does not have to be
+              specified on the "define_link" command.
+
+          In both cases, change the destination address in the example to the
+          address of the partner computer you are connecting to.
+
+      In order to allow other computers to configure links to your computer,
+      you will need to give them your local token ring address.  To find out
+      your own token ring address, look in the ACSLAN.LOG file in the \CMLIB
+
+      subdirectory.  Your token ring address appears in a line similar to the
+      following:
+
+        Adapter 0 is using node address 400000000000.
+
+  o   Configuration specific to the client computer
+
+      No special configuration is needed for Networking Services/2 or Extended
+      Services/2 to configure the ATELL client.
+
+  o   Configuration specific to the server computer
+
+      -   Defining the TP
+
+          Configure the ATELLD program as follows.  Make sure the "filespec"
+          specifies the directory where the ATELLD.EXE program resides.
+
+            define_tp  tp_name(ATELLD)
+                       filespec(C:\SAMPLES\ATELL\ATELLD.EXE)
+                       tp_operation(nonqueued_am_started)
+                       program_type(vio_windowable);
+
+          The "tp_operation" field indicates that a new copy of the ATELLD.EXE
+          program should be started for every new client.  The "program_type"
+          field indicates that the program should be run in an OS/2 Window.
+
+          Note that TP names are case sensitive.  The ATELLD must be typed in
+          all upper case.
+
+
+  PROGRAMMER'S GUIDE
+
+  This is a quick guide on how to recompile the source code on your platform.
+  You should only need to refer to this section if you did not receive the
+  executable code with ATELL, or if you are interested in making changes to the
+  ATELL source.
+
+  See the appropriate makefile for your environment:
+
+  MAKEFILE  ENVIRONMENT
+
+  ATELL.OS2 Networking Services/2 or Extended Services/2 Only
+
+            This makefile will build an OS/2 only executable.  You must have
+            the OS/2 Programmer's Toolkit installed.
+
+  ATELL.FAM (Networking Services/2 or Extended Services/2) and Networking
+            Services/DOS
+
+            This makefile will build a family API executable that will run in
+            either OS/2 or a DOS environment.  You must have the OS/2
+            Programmer's Toolkit installed, and both an OS/2 CPI-C platform
+            (Networking Services/2 or Extended Services/2) and Networking
+            Services/DOS
+  ATELL.DOS Networking Services/DOS Only
+
+            This makefile will build a DOS mode executable.  The OS/2
+            Programmer's Toolkit is NOT required.
+
+  All of these makefiles are written for Microsoft C 6.0.  If you would like to
+  use them with IBM C/2, you will need to change the warning flag from "/W4" to
+  "/W3."
+
+
+
+
+
+
+
